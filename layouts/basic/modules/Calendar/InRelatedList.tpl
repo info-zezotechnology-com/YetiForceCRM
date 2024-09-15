@@ -1,4 +1,4 @@
-{*<!-- {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
+{*<!-- {[The file is published on the basis of YetiForce Public License 6.5 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} -->*}
 {strip}
 	<div class="tpl-RelatedList relatedContainer js-list__form" data-js="container">
 		{assign var=RELATED_MODULE_NAME value=$RELATED_MODULE->get('name')}
@@ -56,7 +56,7 @@
 							<div class="btn-group pr-2">
 								{assign var=IS_SELECT_BUTTON value={$RELATED_LINK->get('_selectRelation')}}
 								<button type="button" class="btn btn-light addButton
-									{if $IS_SELECT_BUTTON eq true} selectRelation {/if} modCT_{$RELATED_MODULE_NAME} {if !empty($RELATED_LINK->linkqcs)}quickCreateSupported{/if}"
+									{if $IS_SELECT_BUTTON eq true} selectRelation {/if} modCT_{$RELATED_MODULE_NAME} {if $RELATED_LINK->linkqcs eq true}quickCreateSupported{/if}"
 									{if $IS_SELECT_BUTTON eq true}
 									data-moduleName={$RELATED_LINK->get('_module')->get('name')} {/if}
 									{if ($RELATED_LINK->isPageLoadLink())}

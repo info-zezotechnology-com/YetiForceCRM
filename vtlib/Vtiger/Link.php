@@ -18,55 +18,22 @@ include_once 'vtlib/Vtiger/Utils/StringTemplate.php';
  */
 class Link
 {
+	public $tabid;
+	public $linkid;
+	public $linktype;
+	public $linklabel;
+	public $linkurl;
+	public $linkicon;
+	public $icon;
+	public $sequence;
+	public $status = false;
+	public $handler_path;
+	public $handler_class;
+	public $handler;
+	public $params;
+
 	// Ignore module while selection
 	const IGNORE_MODULE = -1;
-	/** @var int */
-	public $tabid;
-	/** @var int */
-	public $linkid;
-	/** @var string */
-	public $linkclass;
-	/** @var array */
-	public $linkdata;
-	/** @var string */
-	public $linktype;
-	/** @var string */
-	public $linklabel;
-	/** @var string */
-	public $linkurl;
-	/** @var string */
-	public $linkicon;
-	/** @var string */
-	public $icon;
-	/** @var int */
-	public $sequence;
-	/** @var bool */
-	public $status = false;
-	/** @var string */
-	public $handler_path;
-	/** @var string */
-	public $handler_class;
-	/** @var string */
-	public $handler;
-	/** @var array */
-	public $params;
-	/** @var string */
-	public $dataUrl;
-	/** @var string */
-	public $linkhint;
-	/** @var bool */
-	public $active = true;
-	/** @var string */
-	public $relatedModuleName;
-	/** @var string */
-	public $modalView;
-	/** @var bool|int|null */
-	public $showLabel;
-	/** @var bool */
-	public $linkhref;
-
-	/** Cache (Record) the schema changes to improve performance */
-	public static $__cacheSchemaChanges = [];
 
 	/**
 	 * Initialize this instance.
@@ -94,6 +61,9 @@ class Link
 		}
 		return false;
 	}
+
+	/** Cache (Record) the schema changes to improve performance */
+	public static $__cacheSchemaChanges = [];
 
 	/**
 	 * Add link given module.

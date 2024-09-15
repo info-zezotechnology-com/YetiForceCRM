@@ -1,4 +1,4 @@
-/* {[The file is published on the basis of YetiForce Public License 5.0 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
+/* {[The file is published on the basis of YetiForce Public License 6.5 that can be found in the following directory: licenses/LicenseEN.txt or yetiforce.com]} */
 'use strict';
 
 /** Class representing a calendar. */
@@ -218,22 +218,22 @@ window.Calendar_Js = class {
 				},
 				dayGridMonth: {
 					titleFormat: (args) => {
-						return this.formatDate(args.date, 'month');
+						return this.formatDate(args.date, args.end, 'month');
 					}
 				},
 				timeGridWeek: {
 					titleFormat: (args) => {
-						return this.formatDate(args.date, 'week');
+						return this.formatDate(args.date, args.end, 'week');
 					}
 				},
 				timeGridDay: {
 					titleFormat: (args) => {
-						return this.formatDate(args.date, 'day');
+						return this.formatDate(args.date, args.end, 'day');
 					}
 				},
 				listWeek: {
 					titleFormat: (args) => {
-						return this.formatDate(args.date, 'week');
+						return this.formatDate(args.date, args.end, 'week');
 					},
 					dayHeaderContent: (arg) => {
 						return {
@@ -368,26 +368,43 @@ window.Calendar_Js = class {
 	}
 	/**
 	 * Converts the date format.
-	 * @param {object} date
+	 * @param {object} startDate
+	 * @param {object} endDate
 	 * @param {string} type
 	 * @returns {string}
 	 */
-	formatDate(date, type) {
+	formatDate(startDate, endDate, type) {
 		switch (type) {
 			case 'month':
 				return Calendar_Js.monthFormat[CONFIG.dateFormat]
-					.replace('YYYY', date['year'])
-					.replace('MMMM', App.Fields.Date.fullMonthsTranslated[date['month']]);
+					.replace('YYYY', startDate['year'])
+					.replace('MMMM', App.Fields.Date.fullMonthsTranslated[startDate['month']]);
 			case 'week':
-				return CONFIG.dateFormat
-					.replace('yyyy', date['year'])
-					.replace('mm', App.Fields.Date.monthsTranslated[date['month']])
-					.replace('dd', date['day'] + ' - ' + (date['day'] + 7));
+				let weekRange = '';
+				let endMonth = '';
+				let startDay = startDate['day'];
+				let endYear = startDate['year'];
+				if (startDate['month'] !== endDate['month']) {
+					endMonth = App.Fields.Date.monthsTranslated[endDate['month']];
+				}
+				if (startDate['year'] !== endDate['year']) {
+					startDay = startDate['day'] + ', ' + startDate['year'];
+					endYear = endDate['year'];
+				}
+				weekRange = [
+					App.Fields.Date.monthsTranslated[startDate['month']],
+					startDay,
+					'-',
+					endMonth,
+					endDate['day'] + ',',
+					endYear
+				].join(' ');
+				return weekRange;
 			case 'day':
 				return CONFIG.dateFormat
-					.replace('yyyy', date['year'])
-					.replace('mm', App.Fields.Date.monthsTranslated[date['month']])
-					.replace('dd', date['day']);
+					.replace('yyyy', startDate['year'])
+					.replace('mm', App.Fields.Date.monthsTranslated[startDate['month']])
+					.replace('dd', startDate['day']);
 		}
 	}
 	/**
@@ -519,23 +536,21 @@ window.Calendar_Js = class {
 	 * Register filters
 	 */
 	registerFilters() {
-		let sideBar = this.getSidebarView();
+		const self = this;
+		let sideBar = self.getSidebarView();
 		if (!sideBar || sideBar.length <= 0) {
 			return;
 		}
 		sideBar.find('.js-sidebar-filter-container').each((_, row) => {
 			let formContainer = $(row);
-			this.registerUsersChange(formContainer);
+			self.registerUsersChange(formContainer);
 			App.Fields.Picklist.showSelect2ElementView(formContainer.find('select'));
-			let body = formContainer.find('.js-sidebar-filter-body');
-			if (body.length) {
-				app.showNewScrollbar(body, {
-					suppressScrollX: true
-				});
-			}
-			this.registerFilterForm(formContainer);
+			app.showNewScrollbar(formContainer, {
+				suppressScrollX: true
+			});
+			self.registerFilterForm(formContainer);
 		});
-		this.registerSelectAll(sideBar);
+		self.registerSelectAll(sideBar);
 		if (app.moduleCacheGet('CurrentCvId') !== null) {
 			this.container
 				.find('.js-calendar__extended-filter-tab [data-cvid="' + app.moduleCacheGet('CurrentCvId') + '"] a')
@@ -547,71 +562,61 @@ window.Calendar_Js = class {
 	 * @param {jQuery} container
 	 */
 	registerFilterForm(container) {
-		const self = this,
-			search = container.find('.js-filter__search');
-		if (search.length) {
-			search.on('keyup', (e) => {
-				this.findElementOnList($(e.currentTarget));
-			});
-			if (container.find('.js-filter__clear').length) {
-				container.find('.js-filter__clear').on('click', () => {
-					search.val('');
-					this.findElementOnList(search);
-				});
-			}
+		const self = this;
+		if (container.find('.js-filter__search').length) {
+			container.find('.js-filter__search').on('keyup', this.findElementOnList.bind(self));
 		}
-		container
-			.find('.js-calendar__filter__select, .filterField, .js-filter__container_checkbox_list .js-filter__item__val')
-			.each((_, e) => {
-				const element = $(e);
-				if (element.length == 0) {
-					return true;
-				}
-				const name = element.data('cache'),
-					cachedValue = app.moduleCacheGet(name);
-				if (cachedValue !== undefined) {
-					if (element.prop('tagName') == 'SELECT') {
-						element.val(cachedValue);
-					} else if (element.prop('tagName') == 'INPUT' && element.attr('type') == 'checkbox') {
-						element.prop('checked', cachedValue);
-					}
-				} else if (
-					name &&
-					cachedValue === undefined &&
-					!element.find(':selected').length &&
-					element.data('selected') !== 0
-				) {
-					let allOptions = [];
-					element.find('option').each((i, option) => {
-						allOptions.push($(option).val());
-					});
-					element.val(allOptions);
-					app.moduleCacheSet(name, cachedValue);
-				}
-				element.off('change');
+		container.find('.js-calendar__filter__select, .filterField').each((_, e) => {
+			let element = $(e);
+			let name = element.data('cache');
+			let cachedValue = app.moduleCacheGet(name);
+			if (element.length > 0 && cachedValue !== undefined) {
 				if (element.prop('tagName') == 'SELECT') {
-					App.Fields.Picklist.showSelect2ElementView(element);
+					element.val(cachedValue);
 				}
-				element.on('change', (e) => {
-					let item = $(e.currentTarget),
-						value = item.val();
-					if (value == null) {
-						value = '';
-					}
-					if (item.attr('type') == 'checkbox') {
-						value = element.is(':checked');
-					}
-					app.moduleCacheSet(item.data('cache'), value);
-					self.reloadCalendarData();
+			} else if (
+				name &&
+				element.length > 0 &&
+				cachedValue === undefined &&
+				!element.find(':selected').length &&
+				element.data('selected') !== 0
+			) {
+				let allOptions = [];
+				element.find('option').each((i, option) => {
+					allOptions.push($(option).val());
 				});
+				element.val(allOptions);
+				app.moduleCacheSet(name, cachedValue);
+			}
+			element.off('change');
+			App.Fields.Picklist.showSelect2ElementView(element);
+			element.on('change', (e) => {
+				let item = $(e.currentTarget);
+				let value = item.val();
+				if (value == null) {
+					value = '';
+				}
+				if (item.attr('type') == 'checkbox') {
+					value = element.is(':checked');
+				}
+				app.moduleCacheSet(item.data('cache'), value);
+				self.reloadCalendarData();
+			});
+		});
+		container
+			.find('.js-filter__container_checkbox_list .js-filter__item__val')
+			.off('change')
+			.on('change', (e) => {
+				self.reloadCalendarData();
 			});
 	}
 	/**
 	 * Find element on list (user, group)
-	 * @param {jQuery} target
+	 * @param {jQuery.Event} e
 	 */
-	findElementOnList(target) {
-		const value = target.val().toLowerCase(),
+	findElementOnList(e) {
+		const target = $(e.target),
+			value = target.val().toLowerCase(),
 			container = target.closest('.js-filter__container');
 		container.find('.js-filter__item__value').filter(function () {
 			let item = $(this).closest('.js-filter__item__container');
@@ -859,127 +864,6 @@ window.Calendar_Js = class {
 		}
 	}
 	/**
-	 * Register extra sources events.
-	 */
-	registerExtraSources() {
-		let sideBar = this.getSidebarView();
-		if (!sideBar || sideBar.length <= 0) {
-			return;
-		}
-		const self = this;
-		sideBar.on('click', '.js-source-modal', function () {
-			self
-				.getExtraSourcesView({
-					id: this.dataset.id
-				})
-				.done((html) => {
-					if (html) {
-						let row = null;
-						if (this.dataset.id) {
-							row = $(this).closest('.js-filter__item__container');
-						}
-						app.showModalWindow(html, (modal) => {
-							self.registerExtraSourcesModal(modal, row);
-						});
-					}
-				});
-		});
-		sideBar.on('click', '.js-source-delete', function () {
-			app.showConfirmModal({
-				text: app.vtranslate('JS_LBL_ARE_YOU_SURE_YOU_WANT_TO_DELETE'),
-				confirmedCallback: () => {
-					AppConnector.request({
-						module: self.module ? self.module : CONFIG.module,
-						action: 'Calendar',
-						mode: 'deleteExtraSources',
-						id: this.dataset.id
-					}).done(() => {
-						$(this).closest('.js-filter__item__container').remove();
-					});
-				}
-			});
-		});
-	}
-	/**
-	 * Get extra sources view HTML.
-	 * @param {object} params
-	 * @returns {promise}
-	 */
-	getExtraSourcesView(params) {
-		delete params['action'];
-		const aDeferred = jQuery.Deferred();
-		AppConnector.request(
-			$.extend(
-				{
-					module: this.module ? this.module : CONFIG.module,
-					view: 'CalendarExtraSourcesModal'
-				},
-				params
-			)
-		)
-			.done(function (response) {
-				aDeferred.resolve(response);
-			})
-			.fail(function (error, err) {
-				app.errorLog(error, err);
-				aDeferred.reject(error);
-			});
-		return aDeferred.promise();
-	}
-	/**
-	 * Register extra sources modal events.
-	 * @param {jQuery} modal
-	 */
-	registerExtraSourcesModal(modal, row) {
-		const self = this,
-			picker = modal.find('.js-color-picker'),
-			form = modal.find('.js-modal-form'),
-			nav = this.getSidebarView().find('.js-extra-sources-nav'),
-			navTemplate = this.getSidebarView().find('.js-nav-template');
-		picker.on('click', () => {
-			App.Fields.Colors.showPicker({
-				color: picker.val(),
-				bgToUpdate: modal.find('.js-color-picker__color'),
-				fieldToUpdate: picker
-			});
-		});
-		modal.find('[name="target_module"],[name="type"]').on('change', () => {
-			this.getExtraSourcesView(form.serializeFormData()).done(function (html) {
-				if (html) {
-					const dynamicFields = modal.find('.js-dynamic-fields');
-					dynamicFields.html(html);
-					App.Fields.Picklist.changeSelectElementView(dynamicFields);
-				}
-			});
-		});
-		modal.find('.js-modal__save').on('click', () => {
-			if (form.validationEngine('validate') === true) {
-				const formData = form.serializeFormData();
-				AppConnector.request(formData)
-					.done(function (response) {
-						app.hideModalWindow();
-						if (row) {
-							row.find('.js-background').css('background', formData['color']);
-							row.find('.js-label').text(formData['label']);
-						} else {
-							nav.append(
-								navTemplate
-									.html()
-									.replace(/_SOURCE_ID_/g, response['result'])
-									.replace(/_COLOR_/g, formData['color'])
-									.replace(/_LABEL_/g, formData['label'])
-							);
-						}
-						self.reloadCalendarData();
-					})
-					.fail(function (error, err) {
-						app.errorLog(error, err);
-					});
-			}
-		});
-		modal.find('[name="target_module"]').trigger('change');
-	}
-	/**
 	 * Register events.
 	 */
 	registerEvents() {
@@ -988,6 +872,5 @@ window.Calendar_Js = class {
 		this.renderCalendar();
 		this.registerButtonSelectAll();
 		this.registerAddButton();
-		this.registerExtraSources();
 	}
 };

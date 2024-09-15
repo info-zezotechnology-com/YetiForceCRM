@@ -536,13 +536,7 @@ class Vtiger_Base_UIType extends \App\Base
 	 */
 	public function getValueToExport($value, int $recordId)
 	{
-		if (\is_string($value)) {
-			$value = trim(App\Purifier::decodeHtml($value), '"');
-		} elseif (null === $value) {
-			$value = '';
-		}
-
-		return $value;
+		return trim(App\Purifier::decodeHtml($value), '"');
 	}
 
 	/**
